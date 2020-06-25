@@ -1,0 +1,95 @@
+version: '3.7'
+
+x-minio-common-config:
+  &minio-common-config
+  image: minio/minio:RELEASE.2020-06-22T03-12-50Z
+  environment:
+    MINIO_ACCESS_KEY: minio
+    MINIO_SECRET_KEY: minio123
+    MINIO_NOTIFY_AMQP_ENABLE_RABBITMQ: 'on'
+    MINIO_NOTIFY_AMQP_URL_RABBITMQ: amqp://admin:admin@rabbitmq:5672
+    MINIO_NOTIFY_AMQP_EXCHANGE_RABBITMQ: amq.fanout
+    MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_RABBITMQ: fanout
+    MINIO_NOTIFY_AMQP_DURABLE_RABBITMQ: 'on'
+  command: server http://minio{1...4}/data{1...2}
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+    interval: 30s
+    timeout: 20s
+    retries: 3
+
+# starts 4 docker containers running minio server instances. Each
+# minio server's web interface will be accessible on the host at port
+# 9001 through 9004.
+services:
+  minio1:
+    volumes:
+      - data1-1:/data1
+      - data1-2:/data2
+    ports:
+      - "9001:9000"
+    << : *minio-common-config
+
+  minio2:
+    volumes:
+      - data2-1:/data1
+      - data2-2:/data2
+    ports:
+      - "9002:9000"
+    << : *minio-common-config
+
+  minio3:
+    volumes:
+      - data3-1:/data1
+      - data3-2:/data2
+    ports:
+      - "9003:9000"
+    << : *minio-common-config
+
+  minio4:
+    volumes:
+      - data4-1:/data1
+      - data4-2:/data2
+    ports:
+      - "9004:9000"
+    << : *minio-common-config
+
+  nginx:
+    image: nginx:1.19.0
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+
+  mc:
+    image: minio/mc
+    entrypoint: ["/bin/sh"]
+    depends_on:
+      - nginx
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./.mc:/root/.mc
+
+  rabbitmq:
+    image: rabbitmq:3.8.4-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ./rabbitmq:/var/lib/rabbitmq
+
+## By default this config uses default local driver,
+## For custom volumes replace with volume driver configuration.
+volumes:
+  data1-1:
+  data1-2:
+  data2-1:
+  data2-2:
+  data3-1:
+  data3-2:
+  data4-1:
+  data4-2:
