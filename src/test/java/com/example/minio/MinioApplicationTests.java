@@ -38,7 +38,7 @@ class MinioApplicationTests {
   void testObjectOperation() throws Exception {
     log.info("Put object:[{}] into bucket:[{}]", OBJECT_NAME, BUCKET_NAME);
     minioClient.putObject(
-        BUCKET_NAME, OBJECT_NAME, "HELP.md", null);
+        BUCKET_NAME, OBJECT_NAME, "README.md", null);
 
     log.info("List objects of bucket:[{}]", BUCKET_NAME);
     Iterable<Result<Item>> results = minioClient.listObjects(BUCKET_NAME);
